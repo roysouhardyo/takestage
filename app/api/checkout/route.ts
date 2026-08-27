@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { createDodoCheckout } from '@/lib/dodo/service'
+import { createPolarCheckout } from '@/lib/polar/service'
 import { calculatePriceCents, PRICING_CONFIG } from '@/lib/pricing/config'
 import { validateUrl, validateMessage, normalizeDomain, deriveFallbackInitial } from '@/lib/validation/schemas'
 import { resolveUrlMetadata } from '@/lib/metadata/fetcher'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
     const { website_url, message, duration_minutes, session_id } = body
 
-    // 1. Validate Input (Phase 10 Minimal Input)
+    // 1. Validate Input
     const urlCheck = validateUrl(website_url)
     if (!urlCheck.valid) {
       return NextResponse.json({ error: urlCheck.error }, { status: 400 })
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
 
     const supabase = createServerClient()
 
-    // 2. Fetch current active stage to enforce TAKEOVER RULE (Phase 12)
+    // 2. Fetch current active stage to enforce TAKEOVER RULE
     const { data: currentActive } = await supabase
       .from('stages')
       .select('*')
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
 
     const domain = normalizeDomain(urlCheck.url)
 
-    // 3. Phase 9 — Smart Logo & Metadata Resolver
+    // 3. Smart Logo & Metadata Resolver
     const resolvedMeta = await resolveUrlMetadata(urlCheck.url)
     const fallbackInitial = deriveFallbackInitial(resolvedMeta.title || undefined, domain)
 
@@ -92,8 +94,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to initialize stage record.' }, { status: 500 })
     }
 
-    // 5. Phase 14 & 15 — Create Dodo Checkout Session
-    const checkoutResult = await createDodoCheckout({
+    // 5. Create Polar.sh Checkout Session
+    const checkoutResult = await createPolarCheckout({
       stageId: newStage.id,
       websiteUrl: urlCheck.url,
       domain,
@@ -116,7 +118,7 @@ export async function POST(req: Request) {
       event_type: 'checkout_started',
       stage_id: newStage.id,
       session_id,
-      metadata: { duration_minutes: minutes, amount: amountCents },
+      metadata: { duration_minutes: minutes, amount: amountCents, provider: 'polar.sh' },
     })
 
     return NextResponse.json({
