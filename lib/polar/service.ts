@@ -21,6 +21,7 @@ export async function createPolarCheckout(options: CreatePolarCheckoutOptions) {
     // Create checkout session on Polar via SDK
     const checkout = await polar.checkouts.create({
       products: productId ? [productId] : ['fallback_product'],
+      amount: amountCents,
       customFieldData: {
         stage_id: stageId,
         website_url: websiteUrl,
