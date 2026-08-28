@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import type { Stage, StageEvent } from '@/types'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { computeMinimumTakeoverMinutes } from '@/lib/stage/takeover'
 
 export type RealtimeStatus = 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'ERROR'
 
@@ -14,6 +15,7 @@ interface RealtimeContextType {
   status: RealtimeStatus
   isTransitioning: boolean
   lastTakeoverOwner: string | null
+  minimumTakeoverMinutes: number
   refreshStage: () => Promise<void>
 }
 
@@ -39,6 +41,9 @@ export function RealtimeProvider({
   const [status, setStatus] = useState<RealtimeStatus>('CONNECTED')
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [lastTakeoverOwner, setLastTakeoverOwner] = useState<string | null>(null)
+  const [minimumTakeoverMinutes, setMinimumTakeoverMinutes] = useState<number>(
+    computeMinimumTakeoverMinutes(initialStage)
+  )
 
   // Use refs to avoid re-subscribing on activeStage change
   const activeStageRef = useRef<Stage | null>(initialStage)
@@ -59,6 +64,9 @@ export function RealtimeProvider({
         }
         if (data.pastStages) {
           setPastStages(data.pastStages)
+        }
+        if (typeof data.minimumTakeoverMinutes === 'number') {
+          setMinimumTakeoverMinutes(data.minimumTakeoverMinutes)
         }
       }
     } catch (err) {
@@ -234,6 +242,14 @@ export function RealtimeProvider({
     }
   }, [refreshStage])
 
+  // Live-tick the minimumTakeoverMinutes every second so it updates with the countdown
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setMinimumTakeoverMinutes(computeMinimumTakeoverMinutes(activeStage))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [activeStage])
+
   return (
     <RealtimeContext.Provider
       value={{
@@ -244,6 +260,7 @@ export function RealtimeProvider({
         status,
         isTransitioning,
         lastTakeoverOwner,
+        minimumTakeoverMinutes,
         refreshStage,
       }}
     >
@@ -263,6 +280,7 @@ export function useRealtime() {
       status: 'CONNECTED' as RealtimeStatus,
       isTransitioning: false,
       lastTakeoverOwner: null,
+      minimumTakeoverMinutes: 10,
       refreshStage: async () => {},
     }
   }

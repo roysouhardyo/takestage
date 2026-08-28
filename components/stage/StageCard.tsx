@@ -5,6 +5,7 @@ import { ExternalLink, Zap } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { Stage } from '@/types'
 import { Countdown } from '@/components/ui/Countdown'
+import { useRealtime } from '@/context/RealtimeContext'
 
 interface StageCardProps {
   stage: Stage
@@ -18,10 +19,12 @@ const FONT_MONO = "'Fira Code', monospace"
 
 export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
   const [imgError, setImgError] = useState(false)
+  const { minimumTakeoverMinutes } = useRealtime()
 
   const domainDisplay = stage.normalized_domain || stage.brand_name || stage.website_url || 'Unknown'
   const initial = stage.fallback_initial || domainDisplay[0]?.toUpperCase() || '?'
-  const requiredTakeoverMins = stage.original_duration_minutes + 1
+  // Live minimum computed from remaining seconds (ticking from context)
+  const requiredTakeoverMins = minimumTakeoverMinutes
 
   const handleDomainClick = () => {
     try {
@@ -32,6 +35,18 @@ export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
       })
     } catch {
       // ignore
+    }
+  }
+
+  const [imgSrc, setImgSrc] = useState<string | null>(
+    stage.logo_url || (domainDisplay ? `https://unavatar.io/${encodeURIComponent(domainDisplay)}` : null)
+  )
+
+  const handleImgError = () => {
+    if (imgSrc && imgSrc.includes('unavatar.io')) {
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domainDisplay)}&sz=128`)
+    } else {
+      setImgError(true)
     }
   }
 
@@ -122,11 +137,11 @@ export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
             ;(e.currentTarget as HTMLElement).style.transform = 'scale(1)'
           }}
         >
-          {stage.logo_url && !imgError ? (
+          {imgSrc && !imgError ? (
             <img
-              src={stage.logo_url}
+              src={imgSrc}
               alt={`${domainDisplay} icon`}
-              onError={() => setImgError(true)}
+              onError={handleImgError}
               style={{
                 width: 'clamp(36px, 6vw, 44px)',
                 height: 'clamp(36px, 6vw, 44px)',
@@ -219,7 +234,7 @@ export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
           </div>
         )}
 
-        {/* 5. Current purchased duration */}
+        {/* 5. Live remaining duration + takeover requirement */}
         <p
           style={{
             fontSize: '13px',
@@ -231,7 +246,7 @@ export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
             margin: '0 0 6px 0',
           }}
         >
-          CURRENT SPOT · {stage.original_duration_minutes} MIN
+          CURRENT SPOT · {stage.original_duration_minutes} MIN PURCHASED
         </p>
 
         {/* 6. Clear takeover requirement */}

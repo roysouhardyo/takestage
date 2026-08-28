@@ -85,6 +85,8 @@ export function PreviousStageBubbles({ stages = [], activeStageId }: PreviousSta
           const floatClass = `float-bubble-${(idx % 4) + 1}`
           const hasImgError = imgErrors[stage.id]
 
+          const logoUrl = stage.logo_url || (domain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128` : null)
+
           return (
             <motion.div
               key={stage.id}
@@ -139,9 +141,9 @@ export function PreviousStageBubbles({ stages = [], activeStageId }: PreviousSta
                     flexShrink: 0,
                   }}
                 >
-                  {stage.logo_url && !hasImgError ? (
+                  {logoUrl && !hasImgError ? (
                     <img
-                      src={stage.logo_url}
+                      src={logoUrl}
                       alt={`${domain} icon`}
                       onError={() => setImgErrors((prev) => ({ ...prev, [stage.id]: true }))}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}

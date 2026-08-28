@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useId, useEffect } from 'react'
-import { Zap, ArrowRight, Lock } from 'lucide-react'
+import { Zap, ArrowRight } from 'lucide-react'
 import type { Stage } from '@/types'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +11,7 @@ import { StagePreview } from '@/components/preview/StagePreview'
 import { formatPrice } from '@/lib/pricing/config'
 import { validateUrl, validateMessage } from '@/lib/validation/schemas'
 import { useRealtime } from '@/context/RealtimeContext'
+import { MINIMUM_FRESH_STAGE_MINUTES } from '@/lib/stage/takeover'
 
 type Step = 'duration' | 'details'
 
@@ -25,13 +26,14 @@ const FONT_BODY = "'Inter', system-ui, sans-serif"
 const FONT_MONO = "'Fira Code', monospace"
 
 export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProps) {
-  useRealtime() // keep context subscription alive for live stage updates
+  const { minimumTakeoverMinutes } = useRealtime()
   const [step, setStep] = useState<Step>('duration')
 
   const [liveStage, setLiveStage] = useState<Stage | null>(currentStage)
   const effectiveStage = liveStage || currentStage
 
-  const minimumRequiredMins = effectiveStage ? effectiveStage.original_duration_minutes + 1 : 1
+  // Minimum derived from REMAINING TIME (ticking every second from context)
+  const minimumRequiredMins = effectiveStage ? minimumTakeoverMinutes : MINIMUM_FRESH_STAGE_MINUTES
   const [selectedMinutes, setSelectedMinutes] = useState<number | null>(minimumRequiredMins)
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [message, setMessage] = useState('')
@@ -56,10 +58,13 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
             const data = await res.json()
             if (data.stage) {
               setLiveStage(data.stage)
-              setSelectedMinutes(data.stage.original_duration_minutes + 1)
-            } else if (!currentStage) {
+              // Use server-computed minimum (remaining-time based)
+              if (typeof data.minimumTakeoverMinutes === 'number') {
+                setSelectedMinutes(data.minimumTakeoverMinutes)
+              }
+            } else {
               setLiveStage(null)
-              setSelectedMinutes(30)
+              setSelectedMinutes(MINIMUM_FRESH_STAGE_MINUTES)
             }
           }
         } catch {
@@ -74,7 +79,7 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
     onClose()
     setTimeout(() => {
       setStep('duration')
-      setSelectedMinutes(effectiveStage ? effectiveStage.original_duration_minutes + 1 : 30)
+      setSelectedMinutes(minimumRequiredMins)
       setWebsiteUrl('')
       setMessage('')
       setUrlError(undefined)
@@ -92,7 +97,6 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
     if (!selectedMinutes || !isValidDuration) return
     setStep('details')
   }
-
 
   const handleSubmit = async () => {
     const urlResult = validateUrl(websiteUrl)
@@ -180,7 +184,7 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
           </div>
           <p style={{ fontSize: '13px', color: '#aaaaaa', margin: '0 0 16px 0', fontFamily: FONT_BODY }}>
             {isTakeover
-              ? `The previous spot was purchased for ${effectiveStage.original_duration_minutes} min ($${effectiveStage.original_duration_minutes}). Buy ${minimumRequiredMins}+ min to take over instantly.`
+              ? `${minimumRequiredMins - 1} min remaining. Buy ${minimumRequiredMins}+ min to take over instantly.`
               : 'Choose a duration, enter your link, and go live.'}
           </p>
 
@@ -237,6 +241,7 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
               selectedMinutes={selectedMinutes}
               onSelectMinutes={setSelectedMinutes}
               currentStage={effectiveStage}
+              minimumRequiredMins={minimumRequiredMins}
             />
             <div style={{ marginTop: '24px' }}>
               <Button
@@ -300,7 +305,7 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
               }}
             >
               <span style={{ fontSize: '13px', color: '#aaaaaa', fontFamily: FONT_MONO }}>
-                {selectedMinutes} minutes slot ($1/min)
+                {selectedMinutes} minutes slot ($1 per min)
               </span>
               <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontFamily: FONT_DISPLAY }}>
                 {formattedPrice}
@@ -324,38 +329,44 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => setStep('duration')}
-                  disabled={submitting}
-                  id="checkout-step-back-btn"
-                  style={{ fontFamily: FONT_DISPLAY, fontWeight: 700 }}
-                >
-                  Back
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  loading={submitting}
-                  disabled={!isValidDuration || submitting}
-                  onClick={handleSubmit}
-                  id="checkout-pay-now-btn"
-                  style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, flex: 1, padding: '12px' }}
-                >
-                  <Lock style={{ width: 16, height: 16 }} />
-                  {isTakeover ? `RUSH THE SPOT — ${formattedPrice}` : `PAY ${formattedPrice}`}
-                </Button>
-              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => setStep('duration')}
+                    disabled={submitting}
+                    id="checkout-step-back-btn"
+                    style={{ fontFamily: FONT_DISPLAY, fontWeight: 700 }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    loading={submitting}
+                    disabled={!isValidDuration || submitting}
+                    onClick={handleSubmit}
+                    id="checkout-pay-btn"
+                    style={{
+                      fontFamily: FONT_DISPLAY,
+                      fontWeight: 800,
+                      flex: 1,
+                      padding: '12px',
+                      background: '#C6FE1E',
+                      color: '#000000',
+                      boxShadow: '0 0 20px rgba(198,254,30,0.3)',
+                    }}
+                  >
+                    <Zap style={{ width: 16, height: 16, fill: '#000' }} />
+                    {isTakeover ? `RUSH THE STAGE — ${formattedPrice}` : `TAKE THE STAGE — ${formattedPrice}`}
+                  </Button>
+                </div>
 
               <p style={{ textAlign: 'center', fontSize: '11px', color: '#666666', fontFamily: FONT_MONO, margin: 0 }}>
                 Secured by Polar · Standard Webhooks verification
               </p>
             </div>
-          </div>
         )}
       </div>
     </Modal>

@@ -4,6 +4,7 @@ import { createPolarCheckout } from '@/lib/polar/service'
 import { calculatePriceCents, PRICING_CONFIG } from '@/lib/pricing/config'
 import { validateUrl, validateMessage, normalizeDomain, deriveFallbackInitial } from '@/lib/validation/schemas'
 import { resolveUrlMetadata } from '@/lib/metadata/fetcher'
+import { computeMinimumTakeoverMinutesAt, MINIMUM_FRESH_STAGE_MINUTES } from '@/lib/stage/takeover'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,21 +46,36 @@ export async function POST(req: Request) {
 
     const supabase = createServerClient()
 
-    // 2. Fetch current active stage to enforce TAKEOVER RULE
+    // 2. Fetch current active stage to enforce TAKEOVER RULE (pre-flight check)
+    // NOTE: The final authoritative check happens in the Polar webhook via the DB RPC.
+    const now = new Date()
     const { data: currentActive } = await supabase
       .from('stages')
-      .select('*')
+      .select('id, expires_at, original_duration_minutes, normalized_domain')
       .eq('status', 'active')
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    // Takeover condition: new_duration > active_stage.original_duration_minutes
-    if (currentActive && minutes <= currentActive.original_duration_minutes) {
+    // Compute minimum based on REMAINING TIME (not original duration)
+    const minimumRequired = computeMinimumTakeoverMinutesAt(currentActive, now)
+
+    if (currentActive && minutes < minimumRequired) {
+      const remainingMins = computeMinimumTakeoverMinutesAt(currentActive, now) - 1
       return NextResponse.json(
         {
-          error: `The previous spot was purchased for ${currentActive.original_duration_minutes} minutes ($${currentActive.original_duration_minutes}). You must buy strictly more than ${currentActive.original_duration_minutes} minutes (${currentActive.original_duration_minutes + 1}+ min) to take over the stage.`,
+          error: `There are ${remainingMins} minutes remaining. You must buy at least ${minimumRequired} minutes to take over the stage.`,
+          remaining_minutes: remainingMins,
+          minimum_required: minimumRequired,
         },
+        { status: 400 },
+      )
+    }
+
+    // Also enforce absolute minimum for fresh stages
+    if (!currentActive && minutes < MINIMUM_FRESH_STAGE_MINUTES) {
+      return NextResponse.json(
+        { error: `Minimum purchase is ${MINIMUM_FRESH_STAGE_MINUTES} minutes for a new stage.` },
         { status: 400 },
       )
     }
@@ -136,7 +152,7 @@ export async function POST(req: Request) {
         event_type: 'checkout_started',
         stage_id: stageId,
         session_id,
-        metadata: { duration_minutes: minutes, amount: amountCents, provider: 'polar.sh' },
+        metadata: { duration_minutes: minutes, amount: amountCents, provider: 'polar.sh', minimum_required: minimumRequired },
       })
     } catch (err) {
       console.warn('[Checkout API] Event Log Warning:', err)

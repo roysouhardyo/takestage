@@ -32,9 +32,10 @@ export async function processPolarPaymentSuccess(paymentData: {
   const supabase = createServerClient()
 
   // 1. Call atomic database function to activate stage & handle instant takeover
-  const { data, error } = await supabase.rpc('activate_stage_atomically', {
+  // Uses remaining-time validation (new mechanic from migration 003)
+  const { data, error } = await supabase.rpc('activate_stage_with_remaining_time', {
     p_stage_id: stageId,
-    p_dodo_payment_id: paymentId, // Uses stored column identifier
+    p_payment_id: paymentId,
     p_amount: amount,
   })
 

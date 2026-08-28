@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { Clock, Minus, Plus, Zap } from 'lucide-react'
 import type { Stage } from '@/types'
 import { DEFAULT_PRESET_TIERS, TAKEOVER_PRESET_TIERS, formatPrice } from '@/lib/pricing/config'
+import { MINIMUM_FRESH_STAGE_MINUTES } from '@/lib/stage/takeover'
 
 interface DurationPickerProps {
   selectedMinutes: number | null
   onSelectMinutes: (minutes: number) => void
   currentStage: Stage | null
+  /** Live minimum from context (based on remaining time, not original duration) */
+  minimumRequiredMins?: number
 }
 
 const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif"
@@ -26,17 +29,21 @@ export function DurationPicker({
   selectedMinutes,
   onSelectMinutes,
   currentStage,
+  minimumRequiredMins,
 }: DurationPickerProps) {
-  const activeOriginalMins = currentStage?.original_duration_minutes ?? 0
-  const minimumRequiredMins = activeOriginalMins > 0 ? activeOriginalMins + 1 : 1
+  // Use the live minimum from context if provided, otherwise compute a static fallback
+  const isTakeover = !!currentStage
+  const minimumMins = minimumRequiredMins ?? (isTakeover ? 2 : MINIMUM_FRESH_STAGE_MINUTES)
+  const remainingMins = isTakeover ? minimumMins - 1 : 0
 
-  const defaultStartMins = Math.max(30, minimumRequiredMins)
+  const defaultStartMins = Math.max(MINIMUM_FRESH_STAGE_MINUTES, minimumMins)
   const [customHours, setCustomHours] = useState<number>(Math.floor(defaultStartMins / 60))
   const [customMins, setCustomMins] = useState<number>(defaultStartMins % 60)
   const [isCustom, setIsCustom] = useState(false)
 
-  const availablePresets = currentStage
-    ? TAKEOVER_PRESET_TIERS.filter((t) => t.minutes >= minimumRequiredMins)
+  // Filter presets to only show valid options
+  const availablePresets = isTakeover
+    ? TAKEOVER_PRESET_TIERS.filter((t) => t.minutes >= minimumMins)
     : DEFAULT_PRESET_TIERS
 
   useEffect(() => {
@@ -56,12 +63,12 @@ export function DurationPicker({
     onSelectMinutes(total)
   }
 
-  const isSelectedValid = selectedMinutes ? selectedMinutes >= minimumRequiredMins : false
+  const isSelectedValid = selectedMinutes ? selectedMinutes >= minimumMins : false
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* PROMINENT TAKEOVER WARNING CALLOUT BANNER AT TOP OF STEP 1 */}
-      {currentStage && (
+      {/* TAKEOVER REQUIREMENT BANNER */}
+      {isTakeover && (
         <div
           style={{
             padding: '16px',
@@ -88,7 +95,7 @@ export function DurationPicker({
               <Zap style={{ width: 14, height: 14, fill: '#C6FE1E', color: '#C6FE1E' }} /> TAKEOVER REQUIREMENT
             </span>
             <span style={{ fontSize: '12px', color: '#C6FE1E', fontFamily: FONT_MONO, fontWeight: 800 }}>
-              MIN {minimumRequiredMins} MIN (${minimumRequiredMins})
+              MIN {minimumMins} MIN (${minimumMins})
             </span>
           </div>
 
@@ -97,14 +104,23 @@ export function DurationPicker({
           </p>
 
           <p style={{ fontSize: '13px', color: '#dddddd', margin: 0, fontFamily: FONT_BODY, lineHeight: 1.5 }}>
-            The previous spot was purchased for <strong style={{ color: '#ffffff' }}>{activeOriginalMins} min (${activeOriginalMins})</strong>. To take over the stage now, you must buy strictly more than {activeOriginalMins} min (<strong style={{ color: '#C6FE1E' }}>{minimumRequiredMins}+ min</strong>).
+            {remainingMins > 0 ? (
+              <>
+                <strong style={{ color: '#C6FE1E' }}>{remainingMins} min remaining</strong> on the current stage.
+                Buy <strong style={{ color: '#ffffff' }}>{minimumMins}+ minutes</strong> to take over.
+              </>
+            ) : (
+              <>
+                Stage is about to expire. Buy <strong style={{ color: '#ffffff' }}>{minimumMins}+ minutes</strong> to take over.
+              </>
+            )}
           </p>
         </div>
       )}
 
       {/* Preset Tiers Grid */}
       {availablePresets.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '10px' }}>
           {availablePresets.map((tier) => {
             const isSelected = !isCustom && selectedMinutes === tier.minutes
             const priceCents = tier.minutes * 100
@@ -272,8 +288,8 @@ export function DurationPicker({
           </div>
         </div>
 
-        {/* Validation error display right on Step 1 */}
-        {currentStage && selectedMinutes !== null && !isSelectedValid && (
+        {/* Validation error — shown inline on Step 1 */}
+        {selectedMinutes !== null && !isSelectedValid && (
           <div
             style={{
               padding: '12px 14px',
@@ -288,7 +304,11 @@ export function DurationPicker({
               lineHeight: 1.4,
             }}
           >
-            ⚠️ The previous spot was purchased for {activeOriginalMins} min (${activeOriginalMins}). You must buy strictly more than {activeOriginalMins} min (<strong style={{ color: '#ffffff' }}>{minimumRequiredMins}+ min</strong>) to take over the stage.
+            {isTakeover ? (
+              <>⚠️ {remainingMins > 0 ? `${remainingMins} min remaining.` : ''} You need at least <strong style={{ color: '#ffffff' }}>{minimumMins} minutes</strong> to take over the stage.</>
+            ) : (
+              <>⚠️ Minimum purchase is <strong style={{ color: '#ffffff' }}>{minimumMins} minutes</strong> to start the stage.</>
+            )}
           </div>
         )}
       </div>

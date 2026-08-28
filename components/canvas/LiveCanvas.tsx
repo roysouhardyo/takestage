@@ -74,7 +74,7 @@ export function LiveCanvas({ onClaimStage }: LiveCanvasProps) {
             }}
           />
         </span>
-        <span>THE SPOT IS OPEN</span>
+        <span>THE STAGE IS OPEN</span>
       </div>
 
       {/* 2. TakeStage Brand Logo */}
@@ -104,7 +104,7 @@ export function LiveCanvas({ onClaimStage }: LiveCanvasProps) {
           margin: '0 0 10px 0',
         }}
       >
-        No Active Spotlight
+        No One&apos;s On Stage
       </h1>
 
       <p
@@ -117,7 +117,7 @@ export function LiveCanvas({ onClaimStage }: LiveCanvasProps) {
           fontFamily: FONT_BODY,
         }}
       >
-        Be the first to claim the stage, set your duration, and broadcast your website live.
+        Be the first to take it. Your website goes live for everyone watching.
       </p>
 
       {/* 4. Primary CTA */}
@@ -155,7 +155,7 @@ export function LiveCanvas({ onClaimStage }: LiveCanvasProps) {
       </button>
 
       <p style={{ fontSize: '11px', color: '#666666', fontFamily: FONT_MONO, margin: '14px 0 0 0' }}>
-        from $1 / min · instant activation
+        Buy <strong style={{ color: '#888888' }}>10+ minutes</strong> to start the stage &middot; $1/min
       </p>
     </motion.div>
   )

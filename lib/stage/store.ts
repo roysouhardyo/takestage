@@ -1,6 +1,7 @@
 import type { Stage, StageEvent } from '@/types'
 import fs from 'fs'
 import path from 'path'
+import { computeRemainingMinutes, computeMinimumTakeoverMinutes, MINIMUM_FRESH_STAGE_MINUTES } from '@/lib/stage/takeover'
 
 export interface MemoryStageState {
   activeStage: Stage | null
@@ -127,10 +128,12 @@ export function activateStageInMemory(params: {
   let replacedStage: Stage | null = null
 
   if (currentActive) {
-    if (durationMinutes <= currentActive.original_duration_minutes) {
+    const remainingMins = computeRemainingMinutes(currentActive.expires_at)
+    const minimumMins = computeMinimumTakeoverMinutes(currentActive)
+    if (remainingMins > 0 && durationMinutes <= remainingMins) {
       return {
         success: false,
-        reason: `Must buy more than ${currentActive.original_duration_minutes} minutes to take over.`,
+        reason: `${remainingMins} min remaining. You must buy strictly more than ${remainingMins} min (${minimumMins}+ min) to take over.`,
       }
     }
     replacedStage = { ...currentActive, status: 'taken_over' as const }
