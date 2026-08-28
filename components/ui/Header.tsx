@@ -46,20 +46,18 @@ export function Header({ onGetSpot }: HeaderProps) {
         }}
       >
         {/* Left: Brand Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', zIndex: 10 }}>
-          <div
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', zIndex: 10 }}>
+          <img
+            src="/logo.png"
+            alt="TakeStage Logo"
             style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              background: '#C6FE1E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
+              objectFit: 'cover',
+              boxShadow: '0 0 12px rgba(198,254,30,0.4)',
             }}
-          >
-            <Zap style={{ width: 14, height: 14, color: '#000' }} strokeWidth={3} />
-          </div>
+          />
           <span
             style={{
               fontFamily: "'Space Grotesk', system-ui, sans-serif",

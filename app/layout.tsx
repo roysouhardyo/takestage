@@ -30,6 +30,11 @@ export const metadata: Metadata = {
     title: 'TakeStage — Buy Time. Take the Stage. Be Seen.',
     description: 'The live public internet stage.',
   },
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
   robots: {
     index: true,
     follow: true,
