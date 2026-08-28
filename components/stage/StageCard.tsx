@@ -36,63 +36,24 @@ export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
   }
 
   return (
-    <section
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       style={{
         position: 'relative',
-        width: '100%',
-        minHeight: 'calc(100vh - 108px)',
-        background: '#0a0a0a',
+        zIndex: 20,
+        width: 'min(100%, 720px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'clamp(24px, 5vw, 48px) 16px clamp(32px, 6vw, 56px)',
+        textAlign: 'center',
+        margin: '0 auto',
+        padding: '8px 16px',
         boxSizing: 'border-box',
-        overflow: 'hidden',
       }}
     >
-      {/* Subtle grid pattern background */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Central subtle radial green glow */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '40%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'min(90vw, 750px)',
-          height: '450px',
-          background: 'radial-gradient(ellipse, rgba(198,254,30,0.13) 0%, transparent 70%)',
-          pointerEvents: 'none',
-          filter: 'blur(60px)',
-        }}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          width: 'min(100%, 760px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          margin: '0 auto',
-        }}
-      >
         {/* 1. Small LIVE indicator */}
         <div
           style={{
@@ -319,6 +280,5 @@ export function StageCard({ stage, onTakeover, onExpire }: StageCardProps) {
           RUSH THE SPOT
         </button>
       </motion.div>
-    </section>
   )
 }

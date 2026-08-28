@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Header } from '@/components/ui/Header'
 import { StageCanvas } from '@/components/canvas/StageCanvas'
-import { SpotHistory } from '@/components/history/SpotHistory'
 import { RealtimeProvider, useRealtime } from '@/context/RealtimeContext'
 import type { Stage } from '@/types'
 import { Shield, ArrowRight } from 'lucide-react'
@@ -16,7 +15,7 @@ const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif"
 const FONT_BODY = "'Inter', system-ui, sans-serif"
 
 function HomeContent() {
-  const { activeStage, pastStages } = useRealtime()
+  const { activeStage } = useRealtime()
   const [checkoutOpen, setCheckoutOpen] = useState(false)
 
   return (
@@ -25,11 +24,8 @@ function HomeContent() {
       <StageTicker />
 
       <main style={{ flex: 1 }}>
-        {/* Live Experience (Open Canvas or Active Spotlight) */}
+        {/* Live Experience (Open Canvas or Active Spotlight with Previous Stage Floating Bubbles) */}
         <StageCanvas onOpenCheckout={() => setCheckoutOpen(true)} />
-
-        {/* Spot History Takeover Timeline */}
-        <SpotHistory activeStage={activeStage} stages={pastStages} />
 
         {/* ── Concise Mechanic Explanation ──────────────────── */}
         <section
@@ -157,19 +153,17 @@ function HomeContent() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
+            <img
+              src="/logo.png"
+              alt="TakeStage Logo"
               style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '5px',
-                background: '#C6FE1E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '22px',
+                height: '22px',
+                borderRadius: '6px',
+                objectFit: 'cover',
+                boxShadow: '0 0 10px rgba(198,254,30,0.4)',
               }}
-            >
-              <span style={{ fontSize: '11px', fontWeight: 900, color: '#000' }}>⚡</span>
-            </div>
+            />
             <span
               style={{
                 fontFamily: FONT_DISPLAY,

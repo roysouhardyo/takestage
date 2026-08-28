@@ -93,7 +93,7 @@ input[type=number] {
   appearance: textfield;
 }
 
-/* ── Floating Card Organic Drifting Keyframes ─────────────── */
+/* ── Floating Card & Circular Bubble Organic Drifting Keyframes ── */
 @keyframes float-drift-1 {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(14px, -18px, 0); }
@@ -114,13 +114,80 @@ input[type=number] {
   50% { transform: translate3d(-12px, -20px, 0); }
 }
 
+@keyframes bubble-float-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(10px, -14px, 0) rotate(1deg); }
+}
+
+@keyframes bubble-float-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-12px, 10px, 0) rotate(-1deg); }
+}
+
+@keyframes bubble-float-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(14px, 8px, 0) rotate(1.5deg); }
+}
+
+@keyframes bubble-float-4 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-8px, -16px, 0) rotate(-1.5deg); }
+}
+
 .float-card-1 { animation: float-drift-1 12s ease-in-out infinite; }
 .float-card-2 { animation: float-drift-2 15s ease-in-out infinite; }
 .float-card-3 { animation: float-drift-3 18s ease-in-out infinite; }
 .float-card-4 { animation: float-drift-4 14s ease-in-out infinite; }
 
+.float-bubble-1 { animation: bubble-float-1 14s ease-in-out infinite; }
+.float-bubble-2 { animation: bubble-float-2 18s ease-in-out infinite; }
+.float-bubble-3 { animation: bubble-float-3 16s ease-in-out infinite; }
+.float-bubble-4 { animation: bubble-float-4 20s ease-in-out infinite; }
+
+/* ── PREVIOUS STAGE BUBBLES RESPONSIVE POSITIONS ─────────────── */
+.ts-bubble-pos-1 { top: 8%;  left: 6%; }   /* Top-Left */
+.ts-bubble-pos-2 { top: 10%; left: 78%; }  /* Top-Right */
+.ts-bubble-pos-3 { top: 68%; left: 7%; }   /* Bottom-Left */
+.ts-bubble-pos-4 { top: 66%; left: 75%; }  /* Bottom-Right */
+.ts-bubble-pos-5 { top: 38%; left: 3%; }   /* Mid-Left */
+.ts-bubble-pos-6 { top: 36%; left: 82%; }  /* Mid-Right */
+.ts-bubble-pos-7 { top: 5%;  left: 28%; }  /* Top-Center-Left */
+.ts-bubble-pos-8 { top: 76%; left: 54%; }  /* Bottom-Center-Right */
+
+/* Responsive Breakpoints:
+   Desktop (≥ 1024px): 8 bubbles
+   Tablet (768px - 1023px): 6 bubbles (hide 7 & 8)
+   Mobile (< 768px): 4 bubbles (hide 5, 6, 7, 8; recalculate corners around exclusion zone)
+*/
+@media (max-width: 1023px) {
+  .ts-bubble-pos-7,
+  .ts-bubble-pos-8 {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ts-bubble-pos-5,
+  .ts-bubble-pos-6,
+  .ts-bubble-pos-7,
+  .ts-bubble-pos-8 {
+    display: none !important;
+  }
+
+  .ts-bubble-inner {
+    width: var(--bubble-size-mobile) !important;
+    height: var(--bubble-size-mobile) !important;
+  }
+
+  .ts-bubble-pos-1 { top: 2%; left: 2%; }
+  .ts-bubble-pos-2 { top: 2%; left: auto !important; right: 2%; }
+  .ts-bubble-pos-3 { top: 86%; left: 2%; }
+  .ts-bubble-pos-4 { top: 86%; left: auto !important; right: 2%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .float-card-1, .float-card-2, .float-card-3, .float-card-4 {
+  .float-card-1, .float-card-2, .float-card-3, .float-card-4,
+  .float-bubble-1, .float-bubble-2, .float-bubble-3, .float-bubble-4 {
     animation: none !important;
   }
 }
