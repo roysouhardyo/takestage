@@ -273,6 +273,31 @@ input[type=number] {
   animation: ticker 28s linear infinite;
 }
 
+/* Live Stage Broadcast Marquee Animation — RIGHT TO LEFT seamless infinite scroll */
+@keyframes stage-marquee-rtl {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.stage-broadcast-track-ltr {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: stage-marquee-rtl 30s linear infinite;
+  will-change: transform;
+  flex-shrink: 0;
+}
+
+.stage-broadcast-track-ltr:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-broadcast-track-ltr {
+    animation: none !important;
+  }
+}
+
 /* ============================================================
    COMPONENT BASE STYLES
    ============================================================ */
@@ -429,3 +454,63 @@ input[type=number] {
   border-top: 1px solid rgba(255,255,255,0.05);
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+
+/* ============================================================
+   RESPONSIVE MODAL — bottom sheet on mobile, centered on md+
+   ============================================================ */
+
+/* Default: bottom-sheet on narrow screens */
+.ts-modal-overlay {
+  align-items: flex-end !important;
+  padding: 0 !important;
+}
+.ts-modal-panel {
+  border-radius: 20px 20px 0 0 !important;
+  max-width: 100% !important;
+  max-height: 90dvh !important;
+  margin: 0 !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Desktop (≥ 640px): centered dialog */
+@media (min-width: 640px) {
+  .ts-modal-overlay {
+    align-items: center !important;
+    padding: 16px !important;
+  }
+  .ts-modal-panel {
+    border-radius: 20px !important;
+    max-width: min(94vw, 680px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    margin: auto !important;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE TICKER — hide label text on very small screens
+   ============================================================ */
+@media (max-width: 400px) {
+  .ts-ticker-live-label {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   SPOT HISTORY CARDS — prevent horizontal overflow on mobile
+   ============================================================ */
+@media (max-width: 480px) {
+  /* Truncate domain names that are too long */
+  .ts-history-domain {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block !important;
+  }
+  /* Stack right side badge below on very small screens */
+  .ts-history-card-right {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+

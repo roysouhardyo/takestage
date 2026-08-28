@@ -67,6 +67,9 @@ export function RealtimeProvider({
   }, [])
 
   useEffect(() => {
+    // Initial authoritative reconciliation from server
+    refreshStage()
+
     const supabase = createBrowserClient()
 
     // ── 1. STAGE REALTIME SUBSCRIPTION ──────────────────────────────────────────

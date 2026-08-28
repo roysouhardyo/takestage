@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     if (currentActive && minutes <= currentActive.original_duration_minutes) {
       return NextResponse.json(
         {
-          error: `Takeover requires purchasing strictly more than the current stage's original duration (${currentActive.original_duration_minutes} min).`,
+          error: `The previous spot was purchased for ${currentActive.original_duration_minutes} minutes ($${currentActive.original_duration_minutes}). You must buy strictly more than ${currentActive.original_duration_minutes} minutes (${currentActive.original_duration_minutes + 1}+ min) to take over the stage.`,
         },
         { status: 400 },
       )

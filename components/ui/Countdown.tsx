@@ -1,42 +1,52 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { clsx } from 'clsx'
 
 interface CountdownProps {
   expiresAt: string // ISO timestamp
   onExpire?: () => void
   className?: string
   large?: boolean
+  hero?: boolean
 }
+
+const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif"
+const FONT_MONO = "'Fira Code', monospace"
 
 function parseTimeLeft(expiresAt: string): number {
   return Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
 }
 
-/**
- * Format per spec:
- * - Normally: no seconds — show "4h 32m" or "47m" or "<1m"
- * - Under 60 seconds: show seconds for urgency e.g. "0:42"
- */
-function formatTime(totalSeconds: number): string {
-  if (totalSeconds <= 0) return '0:00'
-
-  // Under 60 seconds: show raw seconds
-  if (totalSeconds < 60) {
-    return `0:${String(totalSeconds).padStart(2, '0')}`
-  }
+function getTimerSegments(totalSeconds: number): string[] {
+  if (totalSeconds <= 0) return ['00', ':', '00']
 
   const h = Math.floor(totalSeconds / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+
+  const mStr = String(m).padStart(2, '0')
+  const sStr = String(s).padStart(2, '0')
 
   if (h > 0) {
-    return m > 0 ? `${h}h ${m}m` : `${h}h`
+    const hStr = String(h).padStart(2, '0')
+    return [hStr, ':', mStr, ':', sStr]
   }
+
+  return [mStr, ':', sStr]
+}
+
+function formatSimpleTime(totalSeconds: number): string {
+  if (totalSeconds <= 0) return '00:00'
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+
+  if (totalSeconds < 60) return `0:${String(totalSeconds).padStart(2, '0')}`
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
   return `${m}m`
 }
 
-export function Countdown({ expiresAt, onExpire, className, large = false }: CountdownProps) {
+export function Countdown({ expiresAt, onExpire, large = false, hero = false }: CountdownProps) {
   const [timeLeft, setTimeLeft] = useState(() => parseTimeLeft(expiresAt))
   const expiredRef = useRef(false)
 
@@ -44,7 +54,6 @@ export function Countdown({ expiresAt, onExpire, className, large = false }: Cou
     expiredRef.current = false
 
     const interval = setInterval(() => {
-      // Always recalculate from the authoritative expires_at timestamp
       const remaining = parseTimeLeft(expiresAt)
       setTimeLeft(remaining)
 
@@ -58,7 +67,6 @@ export function Countdown({ expiresAt, onExpire, className, large = false }: Cou
     return () => clearInterval(interval)
   }, [expiresAt, onExpire])
 
-  // Urgency thresholds
   const isUnderMinute = timeLeft > 0 && timeLeft < 60
   const isUnderTwoMin = timeLeft > 0 && timeLeft < 120
   const isExpired = timeLeft === 0
@@ -71,29 +79,84 @@ export function Countdown({ expiresAt, onExpire, className, large = false }: Cou
     ? 'warning'
     : 'normal'
 
-  const colorClass = clsx({
-    'countdown-normal':  urgency === 'normal',
-    'countdown-warning': urgency === 'warning',
-    'countdown-danger':  urgency === 'danger',
-    'text-gray-600':     urgency === 'expired',
-  })
+  const timerColor =
+    urgency === 'danger'
+      ? '#ef4444'
+      : urgency === 'warning'
+      ? '#f59e0b'
+      : urgency === 'expired'
+      ? '#666666'
+      : '#ffffff'
 
-  const baseClass = large
-    ? 'font-display font-extrabold tabular-nums tracking-tighter'
-    : 'font-mono font-semibold tabular-nums'
+  // Segments for hero/large mode to ensure perfect colon spacing & digit alignment
+  const segments = isExpired ? ['00', ':', '00'] : getTimerSegments(timeLeft)
 
-  const sizeClass = large
-    ? 'text-6xl sm:text-7xl md:text-8xl'
-    : 'text-xl'
+  if (hero || large) {
+    return (
+      <div
+        aria-live="polite"
+        aria-label={`Time remaining: ${segments.join('')}`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: hero ? '6px' : '4px',
+          fontFamily: FONT_DISPLAY,
+          fontWeight: 900,
+          fontVariantNumeric: 'tabular-nums',
+          color: timerColor,
+          fontSize: hero ? 'clamp(52px, 11vw, 108px)' : 'clamp(36px, 8vw, 72px)',
+          lineHeight: 1,
+          letterSpacing: '0.02em',
+          filter: hero ? 'drop-shadow(0 0 35px rgba(198,254,30,0.25))' : 'none',
+          boxSizing: 'border-box',
+          userSelect: 'none',
+        }}
+      >
+        {segments.map((seg, i) =>
+          seg === ':' ? (
+            <span
+              key={`colon-${i}`}
+              style={{
+                display: 'inline-block',
+                color: urgency === 'expired' ? '#666666' : '#C6FE1E',
+                opacity: 0.85,
+                padding: '0 4px',
+                transform: 'translateY(-2px)',
+              }}
+            >
+              :
+            </span>
+          ) : (
+            <span
+              key={`seg-${i}`}
+              style={{
+                display: 'inline-block',
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {seg}
+            </span>
+          )
+        )}
+      </div>
+    )
+  }
 
   return (
     <span
-      className={clsx(baseClass, sizeClass, colorClass, className)}
       aria-live="polite"
-      aria-label={`Time remaining: ${formatTime(timeLeft)}`}
-      style={{ letterSpacing: large ? '-0.04em' : undefined }}
+      aria-label={`Time remaining: ${formatSimpleTime(timeLeft)}`}
+      style={{
+        fontFamily: FONT_MONO,
+        fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums',
+        color: timerColor,
+        fontSize: '14px',
+      }}
     >
-      {isExpired ? 'Expired' : formatTime(timeLeft)}
+      {formatSimpleTime(timeLeft)}
     </span>
   )
 }

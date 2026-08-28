@@ -1,3 +1,5 @@
+'use client'
+
 import type { Stage } from '@/types'
 import { ArchiveItem } from '@/components/archive/ArchiveItem'
 

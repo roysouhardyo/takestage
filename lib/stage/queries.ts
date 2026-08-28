@@ -1,14 +1,14 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { Stage } from '@/types'
+import { getMemoryActiveStage, getMemoryPastStages } from '@/lib/stage/store'
 
 /**
- * Returns the currently active stage, or null if none.
- * An active stage has status='active' and expires_at in the future.
+ * Returns the currently active stage.
+ * Primary source: Supabase. Fallback: in-memory store (populated by webhook).
  */
 export async function getActiveStage(): Promise<Stage | null> {
   try {
     const supabase = createServerClient()
-
     const { data, error } = await supabase
       .from('stages')
       .select('*')
@@ -18,20 +18,22 @@ export async function getActiveStage(): Promise<Stage | null> {
       .maybeSingle()
 
     if (error) {
-      console.warn('[getActiveStage] Supabase fallback (database offline or non-existent):', error.message)
-      return null
+      console.warn('[getActiveStage] Supabase error, falling back to memory store:', error.message)
+      return getMemoryActiveStage()
     }
 
-    return data as Stage | null
-  } catch (err) {
-    console.warn('[getActiveStage] Catch fallback:', err)
-    return null
+    if (data) return data as Stage
+
+    // No active row in DB — check memory (webhook may have written before DB)
+    return getMemoryActiveStage()
+  } catch {
+    return getMemoryActiveStage()
   }
 }
 
 /**
  * Returns the archive of completed/taken_over stages, newest first.
- * Paginated — default 20 per page.
+ * Primary source: Supabase. Returns empty array if DB is unreachable.
  */
 export async function getArchive(
   page = 0,
@@ -39,7 +41,6 @@ export async function getArchive(
 ): Promise<{ stages: Stage[]; total: number }> {
   try {
     const supabase = createServerClient()
-
     const from = page * pageSize
     const to = from + pageSize - 1
 
@@ -51,19 +52,29 @@ export async function getArchive(
       .range(from, to)
 
     if (error) {
-      console.warn('[getArchive] Supabase fallback (database offline or non-existent):', error.message)
-      return { stages: [], total: 0 }
+      console.warn('[getArchive] Supabase error, falling back to memory store:', error.message)
+      const mem = getMemoryPastStages()
+      return { stages: mem, total: mem.length }
     }
 
-    return { stages: (data as Stage[]) ?? [], total: count ?? 0 }
-  } catch (err) {
-    console.warn('[getArchive] Catch fallback:', err)
-    return { stages: [], total: 0 }
+    const stages = (data || []) as Stage[]
+
+    // If DB has nothing yet, show whatever the memory store has
+    if (stages.length === 0) {
+      const mem = getMemoryPastStages()
+      return { stages: mem, total: mem.length }
+    }
+
+    return { stages, total: count || stages.length }
+  } catch {
+    const mem = getMemoryPastStages()
+    return { stages: mem, total: mem.length }
   }
 }
 
 /**
- * Returns aggregated platform stats.
+ * Returns aggregated platform stats from Supabase.
+ * Returns zeros if DB is empty or unreachable.
  */
 export async function getPlatformStats(): Promise<{
   total_stages: number
@@ -73,13 +84,12 @@ export async function getPlatformStats(): Promise<{
 }> {
   try {
     const supabase = createServerClient()
-
     const { data, error } = await supabase
       .from('stages')
       .select('duration_minutes, amount, normalized_domain')
       .in('status', ['active', 'completed', 'taken_over'])
 
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       return { total_stages: 0, total_minutes: 0, total_revenue_cents: 0, unique_domains: 0 }
     }
 
@@ -100,7 +110,6 @@ export async function getPlatformStats(): Promise<{
 export async function getStageById(id: string): Promise<Stage | null> {
   try {
     const supabase = createServerClient()
-
     const { data, error } = await supabase
       .from('stages')
       .select('*')
@@ -124,7 +133,6 @@ export async function getStageById(id: string): Promise<Stage | null> {
 export async function getRecentEvents(limit = 20) {
   try {
     const supabase = createServerClient()
-
     const { data, error } = await supabase
       .from('events')
       .select('*')

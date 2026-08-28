@@ -43,8 +43,9 @@ export interface Stage {
    */
   original_duration_minutes: number
   status: StageStatus
-  dodo_payment_id: string | null
-  dodo_checkout_id: string | null
+  dodo_payment_id?: string | null
+  dodo_checkout_id?: string | null
+  click_count?: number
   created_at: string
 }
 

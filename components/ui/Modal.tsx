@@ -62,14 +62,15 @@ export function Modal({
             inset: 0,
             zIndex: 100,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
-            padding: '16px',
+            padding: '0',
             backgroundColor: 'rgba(0,0,0,0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             overflowY: 'auto',
           }}
+          className="ts-modal-overlay"
           onClick={(e) => {
             if (e.target === overlayRef.current) onClose()
           }}
@@ -81,18 +82,21 @@ export function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="ts-modal-panel"
             style={{
               position: 'relative',
               width: '100%',
               maxWidth: `min(94vw, ${sizeWidths[size]})`,
-              maxHeight: 'calc(100vh - 32px)',
+              maxHeight: 'calc(100dvh - 32px)',
               background: '#161616',
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '20px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(198,254,30,0.15)',
               overflowY: 'auto',
+              overflowX: 'hidden',
               boxSizing: 'border-box',
               margin: 'auto',
+              WebkitOverflowScrolling: 'touch' as never,
             }}
           >
             {/* Top lime accent border */}

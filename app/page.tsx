@@ -10,6 +10,8 @@ import { Shield, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { CheckoutModal } from '@/components/checkout/CheckoutModal'
 
+import { StageTicker } from '@/components/stage/StageTicker'
+
 const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif"
 const FONT_BODY = "'Inter', system-ui, sans-serif"
 
@@ -20,19 +22,20 @@ function HomeContent() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', color: '#e8e8e8' }}>
       <Header onGetSpot={() => setCheckoutOpen(true)} />
+      <StageTicker />
 
       <main style={{ flex: 1 }}>
         {/* Live Experience (Open Canvas or Active Spotlight) */}
         <StageCanvas onOpenCheckout={() => setCheckoutOpen(true)} />
 
-        {/* Spot History Visual Strip */}
-        <SpotHistory stages={pastStages} />
+        {/* Spot History Takeover Timeline */}
+        <SpotHistory activeStage={activeStage} stages={pastStages} />
 
         {/* ── Concise Mechanic Explanation ──────────────────── */}
         <section
           style={{
             borderTop: '1px solid rgba(255,255,255,0.06)',
-            padding: '64px 24px',
+            padding: 'clamp(40px, 8vw, 64px) clamp(16px, 4vw, 24px)',
             background: '#0a0a0a',
           }}
         >
@@ -139,7 +142,7 @@ function HomeContent() {
         style={{
           borderTop: '1px solid rgba(255,255,255,0.05)',
           background: '#080808',
-          padding: '24px 20px',
+          padding: 'clamp(16px, 4vw, 24px) clamp(16px, 4vw, 20px)',
         }}
       >
         <div

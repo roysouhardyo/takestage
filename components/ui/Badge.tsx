@@ -1,23 +1,45 @@
-import { clsx } from 'clsx'
+'use client'
+
+import React from 'react'
 import type { StageStatus } from '@/types'
 
 interface BadgeProps {
   label?: string
   variant?: 'live' | 'ended' | 'taken_over' | 'pending' | 'default'
   className?: string
+  style?: React.CSSProperties
 }
 
-const variantStyles: Record<NonNullable<BadgeProps['variant']>, string> = {
-  live:       'bg-live-green/15 text-live-green border border-live-green/30',
-  ended:      'bg-white/5 text-gray-400 border border-white/10',
-  taken_over: 'bg-stage-lime/10 text-stage-lime border border-stage-lime/25',
-  pending:    'bg-warning-amber/10 text-warning-amber border border-warning-amber/20',
-  default:    'bg-white/5 text-gray-400 border border-white/10',
+const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif"
+
+const variantInlineStyles: Record<NonNullable<BadgeProps['variant']>, React.CSSProperties> = {
+  live: {
+    background: 'rgba(34, 197, 94, 0.12)',
+    color: '#4ade80',
+    border: '1px solid rgba(34, 197, 94, 0.35)',
+  },
+  ended: {
+    background: 'rgba(255, 255, 255, 0.06)',
+    color: '#999999',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+  },
+  taken_over: {
+    background: 'rgba(198, 254, 30, 0.12)',
+    color: '#C6FE1E',
+    border: '1px solid rgba(198, 254, 30, 0.35)',
+  },
+  pending: {
+    background: 'rgba(245, 158, 11, 0.12)',
+    color: '#fbbf24',
+    border: '1px solid rgba(245, 158, 11, 0.35)',
+  },
+  default: {
+    background: 'rgba(255, 255, 255, 0.06)',
+    color: '#999999',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+  },
 }
 
-/**
- * Maps a stage status to a badge variant.
- */
 export function statusToVariant(status: StageStatus): BadgeProps['variant'] {
   switch (status) {
     case 'active':     return 'live'
@@ -29,21 +51,53 @@ export function statusToVariant(status: StageStatus): BadgeProps['variant'] {
   }
 }
 
-export function Badge({ label, variant = 'default', className }: BadgeProps) {
+export function Badge({ label, variant = 'default', style }: BadgeProps) {
   const isLive = variant === 'live'
+  const activeStyle = variantInlineStyles[variant] || variantInlineStyles.default
 
   return (
     <span
-      className={clsx(
-        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xxs font-semibold uppercase tracking-widest',
-        variantStyles[variant],
-        className,
-      )}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '3px 9px',
+        borderRadius: '6px',
+        fontSize: '10px',
+        fontWeight: 800,
+        fontFamily: FONT_DISPLAY,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+        lineHeight: 1,
+        boxSizing: 'border-box',
+        ...activeStyle,
+        ...style,
+      }}
     >
       {isLive && (
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live-green opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-live-green" />
+        <span style={{ position: 'relative', width: 6, height: 6, display: 'inline-block' }}>
+          <span
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              background: '#4ade80',
+              opacity: 0.75,
+              animation: 'ping 1.5s ease-in-out infinite',
+            }}
+          />
+          <span
+            style={{
+              position: 'relative',
+              display: 'block',
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#4ade80',
+            }}
+          />
         </span>
       )}
       {label ?? variant.replace('_', ' ')}

@@ -103,28 +103,6 @@ export function Header({ onGetSpot }: HeaderProps) {
             <Eye style={{ width: 12, height: 12, color: '#aaaaaa' }} />
             <span style={{ fontWeight: 700, color: '#ffffff', fontFamily: "'Fira Code', monospace" }}>{Math.max(1, watcherCount)}</span>
           </div>
-
-          {activeStage && (
-            <div
-              className="hidden lg:flex"
-              style={{
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 12px',
-                borderRadius: '100px',
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'rgba(198,254,30,0.08)',
-                border: '1px solid rgba(198,254,30,0.2)',
-                color: '#C6FE1E',
-              }}
-            >
-              <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {activeStage.brand_name || activeStage.normalized_domain}
-              </span>
-              <span style={{ opacity: 0.6 }}>on stage</span>
-            </div>
-          )}
         </div>
 
         {/* Right: Desktop Nav + Action CTA + Mobile Menu Button */}
