@@ -181,16 +181,42 @@ export function RealtimeProvider({
         }
       })
 
-    // ── 2. LIVE PRESENCE SUBSCRIPTION ─────────────────────────────────────────────
+    // ── 2. LIVE PRESENCE SUBSCRIPTION & HEARTBEAT ───────────────────────────────
+    const sessionIdRef = `sess_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`
+
+    // Heartbeat function to report session to server and fetch active visitor count
+    const sendHeartbeat = async () => {
+      try {
+        const res = await fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: sessionIdRef }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.count) {
+            setWatcherCount((prev) => Math.max(prev, data.count))
+          }
+        }
+      } catch {
+        // Fallback silently
+      }
+    }
+
+    sendHeartbeat()
+    const heartbeatInterval = setInterval(sendHeartbeat, 12000)
+
     const presenceChannel = supabase.channel('presence-stage-viewers', {
-      config: { presence: { key: `session-${Math.random().toString(36).slice(2, 9)}` } },
+      config: { presence: { key: sessionIdRef } },
     })
 
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
         const state = presenceChannel.presenceState()
         const count = Object.keys(state).length
-        setWatcherCount(Math.max(1, count))
+        if (count > 0) {
+          setWatcherCount(count)
+        }
       })
       .subscribe(async (subStatus) => {
         if (subStatus === 'SUBSCRIBED') {
@@ -199,6 +225,7 @@ export function RealtimeProvider({
       })
 
     return () => {
+      clearInterval(heartbeatInterval)
       supabase.removeChannel(stageChannel)
       supabase.removeChannel(presenceChannel)
     }
