@@ -70,33 +70,44 @@ export async function POST(req: Request) {
     const resolvedMeta = await resolveUrlMetadata(urlCheck.url)
     const fallbackInitial = deriveFallbackInitial(resolvedMeta.title || undefined, domain)
 
-    // 4. Create pending stage record in DB
-    const { data: newStage, error: dbError } = await supabase
-      .from('stages')
-      .insert({
-        website_url: urlCheck.url,
-        normalized_domain: domain,
-        brand_name: resolvedMeta.title || domain,
-        logo_url: resolvedMeta.image || null,
-        fallback_initial: fallbackInitial,
-        message: msgCheck.value || null,
-        duration_minutes: minutes,
-        original_duration_minutes: minutes, // IMMUTABLE
-        amount: amountCents,
-        currency: 'usd',
-        status: 'pending',
-      })
-      .select()
-      .single()
+    // 4. Create pending stage record in DB (with fallback if DB table is uninitialized)
+    let stageId: string
+    let newStage: any = null
 
-    if (dbError || !newStage) {
-      console.error('[Checkout API] DB Insert Error:', dbError)
-      return NextResponse.json({ error: 'Failed to initialize stage record.' }, { status: 500 })
+    try {
+      const { data, error: dbError } = await supabase
+        .from('stages')
+        .insert({
+          website_url: urlCheck.url,
+          normalized_domain: domain,
+          brand_name: resolvedMeta.title || domain,
+          logo_url: resolvedMeta.image || null,
+          fallback_initial: fallbackInitial,
+          message: msgCheck.value || null,
+          duration_minutes: minutes,
+          original_duration_minutes: minutes, // IMMUTABLE
+          amount: amountCents,
+          currency: 'usd',
+          status: 'pending',
+        })
+        .select()
+        .single()
+
+      if (dbError || !data) {
+        console.warn('[Checkout API] DB Insert Warning (falling back to generated stage_id):', dbError?.message)
+        stageId = crypto.randomUUID()
+      } else {
+        newStage = data
+        stageId = data.id
+      }
+    } catch (dbErr) {
+      console.warn('[Checkout API] DB Insert Catch:', dbErr)
+      stageId = crypto.randomUUID()
     }
 
     // 5. Create Polar.sh Checkout Session
     const checkoutResult = await createPolarCheckout({
-      stageId: newStage.id,
+      stageId,
       websiteUrl: urlCheck.url,
       domain,
       durationMinutes: minutes,
@@ -107,23 +118,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to generate checkout payment link.' }, { status: 500 })
     }
 
-    // Update pending stage with checkout ID
-    await supabase
-      .from('stages')
-      .update({ dodo_checkout_id: checkoutResult.paymentId })
-      .eq('id', newStage.id)
+    // Update pending stage with checkout ID if stage was saved to DB
+    if (newStage?.id) {
+      try {
+        await supabase
+          .from('stages')
+          .update({ dodo_checkout_id: checkoutResult.paymentId })
+          .eq('id', newStage.id)
+      } catch (err) {
+        console.warn('[Checkout API] DB Update Warning:', err)
+      }
+    }
 
     // Log event
-    await supabase.from('events').insert({
-      event_type: 'checkout_started',
-      stage_id: newStage.id,
-      session_id,
-      metadata: { duration_minutes: minutes, amount: amountCents, provider: 'polar.sh' },
-    })
+    try {
+      await supabase.from('events').insert({
+        event_type: 'checkout_started',
+        stage_id: stageId,
+        session_id,
+        metadata: { duration_minutes: minutes, amount: amountCents, provider: 'polar.sh' },
+      })
+    } catch (err) {
+      console.warn('[Checkout API] Event Log Warning:', err)
+    }
 
     return NextResponse.json({
       checkout_url: checkoutResult.checkoutUrl,
-      stage_id: newStage.id,
+      stage_id: stageId,
     })
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error.'

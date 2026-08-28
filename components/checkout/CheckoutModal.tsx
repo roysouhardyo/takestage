@@ -314,7 +314,7 @@ export function CheckoutModal({ open, onClose, currentStage }: CheckoutModalProp
             </div>
 
             <p style={{ textAlign: 'center', fontSize: '11px', color: '#666666', fontFamily: FONT_MONO, margin: 0 }}>
-              Secured by Dodo Payments · Standard Webhooks verification
+              Secured by Polar · Standard Webhooks verification
             </p>
           </div>
         )}
